@@ -19,8 +19,10 @@ import io.ktor.client.statement.*
 import kotlin.test.*
 import io.ktor.server.testing.*
 import com.example.plugins.*
+import io.ktor.client.call.body
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.cio.parseResponse
 import kotlinx.coroutines.runBlocking
 
 class ApplicationTest {
@@ -34,17 +36,32 @@ class ApplicationTest {
             assertEquals("Hello World!", bodyAsText())
         }
     }
+
+
+    @Test
+    fun customTest() {
+        customTest(url = "/", httpMethod = HttpMethod.Get) { response ->
+            response.apply {
+                assertEquals(HttpStatusCode.OK, status)
+            }
+        }
+    }
 }
 
-fun customTest(url: String, httpMethod: HttpMethod, body: Any? = null): HttpResponse {
+fun customTest(
+    url: String,
+    httpMethod: HttpMethod,
+    body: Any? = null,
+    assertBlock: suspend (response: HttpResponse) -> Unit
+) {
     return runBlocking {
         val testApp = TestApplication {
-            environment {
-                // ここになにか設定を記述する
+            application {
+                configureRouting()
             }
         }
         try {
-            testApp.createClient {
+            val testClient = testApp.createClient {
                 install(DefaultRequest) {
                     header("Authorization", "Bearer token")
                     contentType(ContentType.Application.Json)
@@ -54,10 +71,14 @@ fun customTest(url: String, httpMethod: HttpMethod, body: Any? = null): HttpResp
                         // jackson の設定を追記する
                     }
                 }
-            }.request(urlString = url) {
-                method = httpMethod
-                setBody(body)
             }
+            val response = runBlocking {
+                testClient.request(urlString = url) {
+                    method = httpMethod
+                    setBody(body)
+                }
+            }
+            runBlocking { assertBlock(response) }
         } finally {
             testApp.stop()
         }
