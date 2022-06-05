@@ -43,6 +43,7 @@ class ApplicationTest {
         customTest(url = "/header_test", httpMethod = HttpMethod.Get) { response ->
             response.apply {
                 assertEquals(HttpStatusCode.OK, status)
+                // Authorization ヘッダの中身が返却されることを確認
                 assertEquals("Bearer token", bodyAsText())
             }
         }
