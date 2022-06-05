@@ -40,9 +40,10 @@ class ApplicationTest {
 
     @Test
     fun customTest() {
-        customTest(url = "/", httpMethod = HttpMethod.Get) { response ->
+        customTest(url = "/header_test", httpMethod = HttpMethod.Get) { response ->
             response.apply {
                 assertEquals(HttpStatusCode.OK, status)
+                assertEquals("Bearer token", bodyAsText())
             }
         }
     }
@@ -63,7 +64,7 @@ fun customTest(
         try {
             val testClient = testApp.createClient {
                 install(DefaultRequest) {
-                    header("Authorization", "Bearer token")
+                    header("Authorization", "Bearer token") // ちゃんとした jwt を生成して設定する
                     contentType(ContentType.Application.Json)
                 }
                 install(ContentNegotiation) {
@@ -72,13 +73,13 @@ fun customTest(
                     }
                 }
             }
-            val response = runBlocking {
-                testClient.request(urlString = url) {
+            runBlocking {
+                val response = testClient.request(urlString = url) {
                     method = httpMethod
                     setBody(body)
                 }
+                assertBlock(response)
             }
-            runBlocking { assertBlock(response) }
         } finally {
             testApp.stop()
         }

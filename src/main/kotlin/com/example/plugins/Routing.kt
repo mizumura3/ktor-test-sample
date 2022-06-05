@@ -12,5 +12,8 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("Hello World!")
         }
+        get("/header_test") {
+            call.respondText(call.request.headers["Authorization"]!!)
+        }
     }
 }
